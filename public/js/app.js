@@ -63,6 +63,36 @@ document.addEventListener('submit', function (e) {
   });
 });
 
+// ---------- AJAX form submit (keeps data, shows errors as a popup) ----------
+function ajaxSubmit(form) {
+  return fetch(form.action, {
+    method: 'POST', // real method comes from the form's _method field
+    headers: { 'X-Requested-With': 'XMLHttpRequest', 'Accept': 'application/json' },
+    body: new FormData(form)
+  }).then(async (res) => ({ ok: res.ok, status: res.status, data: await res.json().catch(() => ({})) }));
+}
+
+// Handle the AJAX result. On success → navigate; on error → popup, keep the form & data.
+function handleAjaxResult(result) {
+  if (result.ok) {
+    if (result.data && result.data.redirect) window.location = result.data.redirect;
+    else window.location.reload();
+    return true;
+  }
+  let msg = 'Something went wrong. Please try again.';
+  if (result.status === 422 && result.data && result.data.errors) {
+    msg = Object.values(result.data.errors).flat().join('\n');
+  } else if (result.data && result.data.message) {
+    msg = result.data.message;
+  }
+  if (typeof Swal !== 'undefined') {
+    Swal.fire({ icon: 'error', title: 'Please check the form', text: msg, confirmButtonColor: '#4f46e5' });
+  } else {
+    alert(msg);
+  }
+  return false;
+}
+
 // ---------- Modal helpers ----------
 function openModal(id)  { document.getElementById(id)?.classList.add('open'); }
 function closeModal(id) { document.getElementById(id)?.classList.remove('open'); }

@@ -217,6 +217,12 @@
   }
 
   // Load the indexing list lazily (keeps the main page fast even with huge data).
+  // Submit add/edit via AJAX → errors show as a popup, the modal & data stay put.
+  document.getElementById('categoryForm').addEventListener('submit', function (e) {
+    e.preventDefault();
+    ajaxSubmit(this).then(handleAjaxResult);
+  });
+
   function openIndexModal() {
     const list = document.getElementById('indexList');
     const note = document.getElementById('indexNote');

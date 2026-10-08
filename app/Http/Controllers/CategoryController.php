@@ -13,6 +13,16 @@ class CategoryController extends Controller
 {
     use HandlesUploads;
 
+    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect back. */
+    private function saved(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            $request->session()->flash('status', $message);
+            return response()->json(['redirect' => url()->previous()]);
+        }
+        return back()->with('status', $message);
+    }
+
     /** Screen 1 — categories list (searchable, filterable, paginated). */
     public function index(Request $request)
     {
@@ -93,7 +103,7 @@ class CategoryController extends Controller
         $category->save();
         DataCache::bump();
 
-        return back()->with('status', 'Category added.');
+        return $this->saved($request, 'Category added.');
     }
 
     public function update(Request $request, Category $category)
@@ -120,7 +130,7 @@ class CategoryController extends Controller
         $category->save();
         DataCache::bump();
 
-        return back()->with('status', 'Category updated.');
+        return $this->saved($request, 'Category updated.');
     }
 
     public function destroy(Category $category)

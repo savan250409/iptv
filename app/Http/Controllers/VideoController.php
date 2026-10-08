@@ -13,9 +13,20 @@ class VideoController extends Controller
 {
     use HandlesUploads;
 
+    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect to list. */
+    private function saved(Request $request, string $message)
+    {
+        if ($request->expectsJson()) {
+            $request->session()->flash('status', $message);
+            return response()->json(['redirect' => route('videos.index')]);
+        }
+        return redirect()->route('videos.index')->with('status', $message);
+    }
+
     private array $videoRules = [
-        'category_id' => ['required', 'exists:categories,id'],
-        'title'       => ['required', 'string', 'max:190'],
+        'category_id'    => ['required', 'exists:categories,id'],
+        'title'          => ['required', 'string', 'max:190'],
+        'episode_number' => ['nullable', 'string', 'max:190'],
     ];
 
     private string $videoMimes = 'video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska';
@@ -30,7 +41,7 @@ class VideoController extends Controller
         $perPage       = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10;
 
         $query = Video::query()
-            ->select(['id', 'category_id', 'title', 'video_file', 'thumbnail', 'created_at'])
+            ->select(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail', 'created_at'])
             ->with('category:id,name,folder');
 
         if ($filterCat) {
@@ -105,14 +116,15 @@ class VideoController extends Controller
         $folder = $category->folder ?: $this->catFolder($category->name);
 
         Video::create([
-            'category_id' => $data['category_id'],
-            'title'       => $data['title'],
-            'video_file'  => $this->storeUpload($request->file('video'), Upload::videoDir($folder)),
-            'thumbnail'   => $this->saveThumbnail($request->input('thumbnail_data'), $folder),
+            'category_id'    => $data['category_id'],
+            'title'          => $data['title'],
+            'episode_number' => $data['episode_number'] ?? null,
+            'video_file'     => $this->storeUpload($request->file('video'), Upload::videoDir($folder)),
+            'thumbnail'      => $this->saveThumbnail($request->input('thumbnail_data'), $folder),
         ]);
         DataCache::bump();
 
-        return redirect()->route('videos.index')->with('status', 'Video added.');
+        return $this->saved($request, 'Video added.');
     }
 
     /** Edit-video screen. */
@@ -132,30 +144,42 @@ class VideoController extends Controller
             'video' => ['nullable', 'file', 'mimetypes:' . $this->videoMimes, 'max:512000'],
         ]);
 
-        $video->category_id = $data['category_id'];
-        $video->title       = $data['title'];
+        // Folder the asset currently lives in (captured BEFORE changing the category).
+        $old = $video->category;
+        $oldFolder = optional($old)->folder ?: $this->catFolder(optional($old)->name ?? '');
 
-        $category = Category::find($data['category_id']);
-        $folder = $category->folder ?: $this->catFolder($category->name);
+        // Folder the asset should live in after this edit.
+        $new = Category::find($data['category_id']);
+        $newFolder = $new->folder ?: $this->catFolder($new->name);
 
+        $video->category_id    = $data['category_id'];
+        $video->title          = $data['title'];
+        $video->episode_number = $data['episode_number'] ?? null;
+        $categoryChanged       = ($oldFolder !== $newFolder);
+
+        // --- Video file ---
         if ($request->hasFile('video')) {
-            $this->removeFile($video->video_file, Upload::videoDir($folder));
-            $video->video_file = $this->storeUpload($request->file('video'), Upload::videoDir($folder));
+            $this->removeFile($video->video_file, Upload::videoDir($oldFolder)); // delete from old folder
+            $video->video_file = $this->storeUpload($request->file('video'), Upload::videoDir($newFolder));
+        } elseif ($categoryChanged) {
+            $this->moveFile($video->video_file, Upload::videoDir($oldFolder), Upload::videoDir($newFolder));
         }
 
-        // Replace the thumbnail only when a fresh one was generated (new file chosen).
+        // --- Thumbnail (replace only if a fresh one was generated) ---
         if ($request->filled('thumbnail_data')) {
-            $new = $this->saveThumbnail($request->input('thumbnail_data'), $folder);
-            if ($new) {
-                $this->removeFile($video->thumbnail, Upload::thumbDir($folder));
-                $video->thumbnail = $new;
+            $thumb = $this->saveThumbnail($request->input('thumbnail_data'), $newFolder);
+            if ($thumb) {
+                $this->removeFile($video->thumbnail, Upload::thumbDir($oldFolder));
+                $video->thumbnail = $thumb;
             }
+        } elseif ($categoryChanged) {
+            $this->moveFile($video->thumbnail, Upload::thumbDir($oldFolder), Upload::thumbDir($newFolder));
         }
 
         $video->save();
         DataCache::bump();
 
-        return redirect()->route('videos.index')->with('status', 'Video updated.');
+        return $this->saved($request, 'Video updated.');
     }
 
     /**

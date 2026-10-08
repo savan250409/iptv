@@ -9,7 +9,7 @@ namespace App\Support;
  *
  *   category image  → upload/video/{folder}/category-images/{file}
  *   video file      → upload/video/{folder}/video/{file}
- *   video thumbnail → upload/{folder}/video-thumabanil-image/{file}
+ *   video thumbnail → upload/video/{folder}/video-thumabail/{file}
  */
 class Upload
 {
@@ -25,7 +25,7 @@ class Upload
 
     public static function thumbDir(?string $folder): string
     {
-        return $folder . '/video-thumabanil-image';
+        return 'video/' . $folder . '/video-thumabail';
     }
 
     /** Public URL for a stored file name inside a given directory. */

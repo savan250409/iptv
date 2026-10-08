@@ -11,6 +11,9 @@ Route::middleware('api.token')->group(function () {
 
     // API #2 — videos by category id
     Route::post('/getVideoByCategoryID', [VideoApiController::class, 'byCategory']);
+
+    // API #3 — mixed feed: all categories' ep1, then all categories' ep2, ... (paginated)
+    Route::post('/getrendomvideo', [VideoApiController::class, 'getRandom']);
 });
 
 

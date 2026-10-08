@@ -38,7 +38,13 @@
           <label class="field">
             <span>Video title</span>
             <input type="text" name="title" required maxlength="190"
-                   value="{{ old('title', $video->title) }}" placeholder="e.g. Episode 1">
+                   value="{{ old('title', $video->title) }}" placeholder="e.g. The Pilot">
+          </label>
+
+          <label class="field">
+            <span>Episode number</span>
+            <input type="text" name="episode_number" maxlength="190"
+                   value="{{ old('episode_number', $video->episode_number) }}" placeholder="e.g. 1">
           </label>
         </div>
 
@@ -159,15 +165,18 @@
     buildThumb(file);
   });
 
-  // Make sure the thumbnail is ready before submitting (if a file is chosen).
+  // Submit via AJAX so validation errors show as a popup and nothing typed is lost.
+  // Also makes sure the thumbnail is ready first (if a file is chosen).
   form.addEventListener('submit', function (e) {
+    e.preventDefault();
     const file = input.files && input.files[0];
+    const send = () => ajaxSubmit(form).then(handleAjaxResult);
     if (file && !hidden.value && !generating) {
-      e.preventDefault();
-      buildThumb(file).then(() => form.submit());
+      buildThumb(file).then(send);
     } else if (generating) {
-      e.preventDefault();
-      const wait = setInterval(() => { if (!generating) { clearInterval(wait); form.submit(); } }, 120);
+      const wait = setInterval(() => { if (!generating) { clearInterval(wait); send(); } }, 120);
+    } else {
+      send();
     }
   });
 })();

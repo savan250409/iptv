@@ -41,6 +41,23 @@
       <p class="api-row api-descr"><b>Description:</b><br>
         Returns all videos for the specified category ID.</p>
     </div>
+
+    {{-- 3 --}}
+    <div class="api-doc-card">
+      <h3>3. Get Random Video</h3>
+
+      <p class="api-row"><span class="lbl">Method:</span> <span class="m-val">POST</span></p>
+
+      <p class="api-row"><span class="lbl">URL:</span></p>
+      <div class="api-url">{{ $apiBase }}/getrendomvideo</div>
+
+      <p class="api-row"><span class="lbl">Parameters:</span><br>
+        <code class="param-name">page</code> <span class="param-req">(optional)</span> e.g. <span class="param-ex">1</span></p>
+
+      <p class="api-row api-descr"><b>Description:</b><br>
+        Mixed feed — every category's episode 1 first, then every category's episode 2, etc.
+        Paginated ({{ config('app.random_video_per_page') }} per page, set in <code class="code-inline">.env</code>).</p>
+    </div>
   </div>
 </div>
 @endsection

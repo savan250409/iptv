@@ -28,7 +28,7 @@ class CategoryApiController extends Controller
             // Newly added categories (sort_order 0) show first; a saved index sequence follows.
             // Only categories that actually contain at least one video are returned.
             $query = Category::query()
-                ->select(['id', 'name', 'image', 'folder', 'created_at'])
+                ->select(['id', 'name', 'image', 'folder'])
                 ->withCount('videos')
                 ->where('is_active', true)
                 ->whereHas('videos')
@@ -48,7 +48,7 @@ class CategoryApiController extends Controller
                         ->orderBy('sort_order')
                         ->orderByDesc('id')
                         ->limit(5)
-                        ->get(['id', 'category_id', 'title', 'video_file', 'thumbnail', 'created_at']);
+                        ->get(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail']);
                     // Reuse the parent category (already has `folder`) so URLs rebuild without extra queries.
                     $videos->each->setRelation('category', $c);
 
@@ -57,13 +57,12 @@ class CategoryApiController extends Controller
                         'name'        => $c->name,
                         'image'       => $c->image_url,
                         'video_count' => $c->videos_count,
-                        'created_at'  => optional($c->created_at)->toDateTimeString(),
                         'videos'      => $videos->map(fn ($v) => [
-                            'id'         => $v->id,
-                            'title'      => $v->title,
-                            'video_url'  => $v->video_url,
-                            'thumbnail'  => $v->thumbnail_url,
-                            'created_at' => optional($v->created_at)->toDateTimeString(),
+                            'id'             => $v->id,
+                            'title'          => $v->title,
+                            'episode_number' => $v->episode_number,
+                            'video_url'      => $v->video_url,
+                            'thumbnail'      => $v->thumbnail_url,
                         ])->all(),
                     ];
                 })->all(),

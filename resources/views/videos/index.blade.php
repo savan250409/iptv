@@ -52,7 +52,7 @@
   <div class="table-wrap">
     <table class="table">
       <thead>
-        <tr><th>Preview</th><th>Title</th><th>Category</th><th>Added</th><th class="ta-right">Actions</th></tr>
+        <tr><th>Preview</th><th>Title</th><th>Episode</th><th>Category</th><th>Added</th><th class="ta-right">Actions</th></tr>
       </thead>
       <tbody>
         @foreach ($videos as $v)
@@ -65,6 +65,7 @@
             @endif
           </td>
           <td class="strong">{{ $v->title }}</td>
+          <td class="muted">{{ $v->episode_number ?: '—' }}</td>
           <td><span class="pill"><span class="dot"></span>{{ optional($v->category)->name }}</span></td>
           <td class="muted">{{ optional($v->created_at)->format('d M Y') }}</td>
           <td>

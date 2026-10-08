@@ -18,6 +18,9 @@ return [
     // Static bearer token required by the public APIs.
     'api_token' => env('API_TOKEN', ''),
 
+    // Page size for the getrendomvideo API.
+    'random_video_per_page' => (int) env('RANDOM_VIDEO_PER_PAGE', 10),
+
     /*
     |--------------------------------------------------------------------------
     | Application Environment

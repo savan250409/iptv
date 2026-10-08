@@ -11,7 +11,7 @@ class Video extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['category_id', 'title', 'video_file', 'thumbnail', 'sort_order'];
+    protected $fillable = ['category_id', 'title', 'episode_number', 'video_file', 'thumbnail', 'sort_order'];
 
     public function category()
     {

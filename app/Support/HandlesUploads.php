@@ -84,6 +84,28 @@ trait HandlesUploads
         $this->removeEmptyDirs(dirname($relative));
     }
 
+    /**
+     * Move a stored file (file-name-only value) from $oldDir to $newDir, keeping the
+     * same name. Used when a video's category changes so its asset follows it.
+     * Returns the (unchanged) file name. Legacy full-path values are left in place.
+     */
+    protected function moveFile(?string $stored, string $oldDir, string $newDir): void
+    {
+        if (!$stored || str_contains($stored, '/')) {
+            return; // nothing to move, or a legacy full-path value
+        }
+        $from = trim($oldDir, '/') . '/' . $stored;
+        $to   = trim($newDir, '/') . '/' . $stored;
+        if ($from === $to) {
+            return;
+        }
+        $disk = Storage::disk('uploads');
+        if ($disk->exists($from)) {
+            $disk->move($from, $to);           // Flysystem creates the target directory
+            $this->removeEmptyDirs(dirname($from)); // clean up the emptied old folder
+        }
+    }
+
     /** Delete a legacy full-path value (upload/... or storage disk path). */
     protected function deleteLegacy(string $path): void
     {
@@ -116,20 +138,15 @@ trait HandlesUploads
         }
     }
 
-    /** Remove a category's whole upload footprint (video files/images + thumbnails). */
+    /** Remove a category's whole upload footprint (images + videos + thumbnails all live under video/{folder}). */
     protected function removeCategoryFolder(?string $folder): void
     {
         if (!$folder) {
             return;
         }
-        // video files + category images live under video/{folder}
         if (is_dir(public_path('upload/video/' . $folder))) {
             Storage::disk('uploads')->deleteDirectory('video/' . $folder);
             $this->removeEmptyDirs('video');
-        }
-        // thumbnails live under {folder}
-        if (is_dir(public_path('upload/' . $folder))) {
-            Storage::disk('uploads')->deleteDirectory($folder);
         }
     }
 }
