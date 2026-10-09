@@ -93,6 +93,7 @@ class VideoApiController extends Controller
                     'id'             => $v->id,
                     'title'          => $v->title,
                     'episode_number' => $v->episode_number,
+                    'category_id'    => $v->category_id,
                     'category'       => optional($v->category)->name,
                     'video_url'      => $v->video_url,
                     'thumbnail'      => $v->thumbnail_url,
