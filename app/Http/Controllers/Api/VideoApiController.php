@@ -11,12 +11,13 @@ use Illuminate\Http\Request;
 class VideoApiController extends Controller
 {
     /**
-     * API #2 — Get videos by category id (POST, category_id in the body).
-     * POST /api/getVideoByCategoryID   body: { "category_id": 1, "page": 1, "per_page": 20 }
+     * API #2 — Get videos by category id (and optional sub_category_id), POST body.
+     * POST /api/getVideoByCategoryID   body: { "category_id": 1, "sub_category_id": 2, "page": 1, "per_page": 20 }
      */
     public function byCategory(Request $request)
     {
-        $categoryId = (int) $request->input('category_id', 0);
+        $categoryId    = (int) $request->input('category_id', 0);
+        $subCategoryId = (int) $request->input('sub_category_id', 0);
         if ($categoryId <= 0) {
             return response()->json(['success' => false, 'message' => 'category_id is required.'], 400);
         }
@@ -36,11 +37,12 @@ class VideoApiController extends Controller
         $perPage = min(100, max(1, (int) $request->input('per_page', 20)));
         $page    = max(1, (int) $request->input('page', 1));
 
-        $payload = DataCache::remember("api:vids:$categoryId:$page:$perPage:$host", 60, function () use ($categoryId, $perPage) {
+        $payload = DataCache::remember("api:vids:$categoryId:$subCategoryId:$page:$perPage:$host", 60, function () use ($categoryId, $subCategoryId, $perPage) {
             $videos = Video::query()
-                ->select(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail'])
+                ->select(['id', 'category_id', 'sub_category_id', 'title', 'episode_number', 'video_file', 'thumbnail'])
                 ->with('category:id,folder')
                 ->where('category_id', $categoryId)
+                ->when($subCategoryId > 0, fn ($q) => $q->where('sub_category_id', $subCategoryId))
                 ->orderBy('sort_order')
                 ->orderByDesc('id')
                 ->paginate($perPage);

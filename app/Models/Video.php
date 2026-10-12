@@ -11,11 +11,16 @@ class Video extends Model
 {
     use HasFactory;
 
-    protected $fillable = ['category_id', 'title', 'episode_number', 'video_file', 'thumbnail', 'sort_order'];
+    protected $fillable = ['category_id', 'sub_category_id', 'title', 'episode_number', 'video_file', 'thumbnail', 'sort_order'];
 
     public function category()
     {
         return $this->belongsTo(Category::class);
+    }
+
+    public function subCategory()
+    {
+        return $this->belongsTo(SubCategory::class);
     }
 
     /** Folder of this video's category (for rebuilding paths). */

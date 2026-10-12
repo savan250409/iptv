@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\CategoryApiController;
+use App\Http\Controllers\Api\SubCategoryApiController;
 use App\Http\Controllers\Api\VideoApiController;
 use Illuminate\Support\Facades\Route;
 
@@ -9,7 +10,10 @@ Route::middleware('api.token')->group(function () {
     // API #1 — list categories (each with its last 5 videos)
     Route::get('/get-category', [CategoryApiController::class, 'index']);
 
-    // API #2 — videos by category id
+    // API — sub-categories by category id
+    Route::post('/getsubcategorybycategoryid', [SubCategoryApiController::class, 'byCategory']);
+
+    // API #2 — videos by category id (+ optional sub_category_id)
     Route::post('/getVideoByCategoryID', [VideoApiController::class, 'byCategory']);
 
     // API #3 — mixed feed: all categories' ep1, then all categories' ep2, ... (paginated)

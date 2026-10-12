@@ -20,6 +20,11 @@ class Category extends Model
         return $this->hasMany(Video::class);
     }
 
+    public function subCategories()
+    {
+        return $this->hasMany(SubCategory::class);
+    }
+
     /** Absolute public URL for the category image (or null). */
     public function getImageUrlAttribute(): ?string
     {

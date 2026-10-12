@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\SubCategory;
 use App\Models\Video;
 use App\Support\DataCache;
 use Illuminate\Http\Request;
@@ -43,27 +44,42 @@ class CategoryApiController extends Controller
 
             return [
                 'data' => $categories->getCollection()->map(function ($c) {
-                    // Last 5 videos of this category (indexed order, newest first).
-                    $videos = Video::where('category_id', $c->id)
+                    // Up to 5 active sub-categories of this category.
+                    $subs = SubCategory::where('category_id', $c->id)
+                        ->where('is_active', true)
                         ->orderBy('sort_order')
-                        ->orderByDesc('id')
+                        ->orderBy('name')
                         ->limit(5)
-                        ->get(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail']);
-                    // Reuse the parent category (already has `folder`) so URLs rebuild without extra queries.
-                    $videos->each->setRelation('category', $c);
+                        ->get(['id', 'category_id', 'name', 'image']);
+                    $subs->each->setRelation('category', $c);
 
                     return [
-                        'id'          => $c->id,
-                        'name'        => $c->name,
-                        'image'       => $c->image_url,
-                        'video_count' => $c->videos_count,
-                        'videos'      => $videos->map(fn ($v) => [
-                            'id'             => $v->id,
-                            'title'          => $v->title,
-                            'episode_number' => $v->episode_number,
-                            'video_url'      => $v->video_url,
-                            'thumbnail'      => $v->thumbnail_url,
-                        ])->all(),
+                        'id'             => $c->id,
+                        'name'           => $c->name,
+                        'image'          => $c->image_url,
+                        'video_count'    => $c->videos_count,
+                        'sub_categories' => $subs->map(function ($s) use ($c) {
+                            // Last 5 videos of this particular sub-category.
+                            $subVideos = Video::where('sub_category_id', $s->id)
+                                ->orderBy('sort_order')
+                                ->orderByDesc('id')
+                                ->limit(5)
+                                ->get(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail']);
+                            $subVideos->each->setRelation('category', $c);
+
+                            return [
+                                'id'     => $s->id,
+                                'name'   => $s->name,
+                                'image'  => $s->image_url,
+                                'videos' => $subVideos->map(fn ($v) => [
+                                    'id'             => $v->id,
+                                    'title'          => $v->title,
+                                    'episode_number' => $v->episode_number,
+                                    'video_url'      => $v->video_url,
+                                    'thumbnail'      => $v->thumbnail_url,
+                                ])->all(),
+                            ];
+                        })->all(),
                     ];
                 })->all(),
             ];

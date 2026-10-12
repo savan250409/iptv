@@ -27,10 +27,20 @@
         <div class="form-grid">
           <label class="field">
             <span>Category</span>
-            <select name="category_id" required>
+            <select name="category_id" id="videoCategory" required onchange="loadSubCategories(this.value)">
               <option value="">— Select category —</option>
               @foreach ($allCategories as $c)
                 <option value="{{ $c->id }}" {{ (int) old('category_id', $video->category_id) === $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+              @endforeach
+            </select>
+          </label>
+
+          <label class="field">
+            <span>Sub category</span>
+            <select name="sub_category_id" id="videoSubCategory">
+              <option value="">— Select sub category —</option>
+              @foreach ($subCategories as $s)
+                <option value="{{ $s->id }}" {{ (int) old('sub_category_id', $video->sub_category_id) === $s->id ? 'selected' : '' }}>{{ $s->name }}</option>
               @endforeach
             </select>
           </label>
@@ -87,6 +97,25 @@
 </div>
 
 @push('scripts')
+<script>
+  // Load a category's sub-categories into the sub-category dropdown (AJAX).
+  const SUBCAT_URL = "{{ route('sub-categories.by-category') }}";
+  function loadSubCategories(categoryId, selectedId) {
+    const sel = document.getElementById('videoSubCategory');
+    sel.innerHTML = '<option value="">— Select sub category —</option>';
+    if (!categoryId) return;
+    fetch(SUBCAT_URL + '?category_id=' + encodeURIComponent(categoryId), { headers: { 'Accept': 'application/json' } })
+      .then(r => r.json())
+      .then(d => {
+        (d.data || []).forEach(s => {
+          const o = document.createElement('option');
+          o.value = s.id; o.textContent = s.name;
+          if (selectedId && String(selectedId) === String(s.id)) o.selected = true;
+          sel.appendChild(o);
+        });
+      }).catch(() => {});
+  }
+</script>
 <script>
 (function () {
   const input   = document.getElementById('videoFile');

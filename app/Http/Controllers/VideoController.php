@@ -24,9 +24,10 @@ class VideoController extends Controller
     }
 
     private array $videoRules = [
-        'category_id'    => ['required', 'exists:categories,id'],
-        'title'          => ['required', 'string', 'max:190'],
-        'episode_number' => ['nullable', 'string', 'max:190'],
+        'category_id'     => ['required', 'exists:categories,id'],
+        'sub_category_id' => ['nullable', 'exists:sub_categories,id'],
+        'title'           => ['required', 'string', 'max:190'],
+        'episode_number'  => ['nullable', 'string', 'max:190'],
     ];
 
     private string $videoMimes = 'video/mp4,video/webm,video/ogg,video/quicktime,video/x-matroska';
@@ -102,6 +103,7 @@ class VideoController extends Controller
         return view('videos.form', [
             'video'         => new Video(),
             'allCategories' => $allCategories,
+            'subCategories' => collect(), // loaded via AJAX after a category is picked
             'mode'          => 'create',
         ]);
     }
@@ -116,9 +118,10 @@ class VideoController extends Controller
         $folder = $category->folder ?: $this->catFolder($category->name);
 
         Video::create([
-            'category_id'    => $data['category_id'],
-            'title'          => $data['title'],
-            'episode_number' => $data['episode_number'] ?? null,
+            'category_id'     => $data['category_id'],
+            'sub_category_id' => $data['sub_category_id'] ?? null,
+            'title'           => $data['title'],
+            'episode_number'  => $data['episode_number'] ?? null,
             'video_file'     => $this->storeUpload($request->file('video'), Upload::videoDir($folder)),
             'thumbnail'      => $this->saveThumbnail($request->input('thumbnail_data'), $folder),
         ]);
@@ -131,9 +134,13 @@ class VideoController extends Controller
     public function edit(Video $video)
     {
         $allCategories = Category::orderBy('name')->get();
+        // Sub-categories of this video's current category (to pre-fill the dropdown).
+        $subCategories = \App\Models\SubCategory::where('category_id', $video->category_id)
+            ->orderBy('name')->get(['id', 'name']);
         return view('videos.form', [
             'video'         => $video,
             'allCategories' => $allCategories,
+            'subCategories' => $subCategories,
             'mode'          => 'edit',
         ]);
     }
@@ -152,10 +159,11 @@ class VideoController extends Controller
         $new = Category::find($data['category_id']);
         $newFolder = $new->folder ?: $this->catFolder($new->name);
 
-        $video->category_id    = $data['category_id'];
-        $video->title          = $data['title'];
-        $video->episode_number = $data['episode_number'] ?? null;
-        $categoryChanged       = ($oldFolder !== $newFolder);
+        $video->category_id     = $data['category_id'];
+        $video->sub_category_id = $data['sub_category_id'] ?? null;
+        $video->title           = $data['title'];
+        $video->episode_number  = $data['episode_number'] ?? null;
+        $categoryChanged        = ($oldFolder !== $newFolder);
 
         // --- Video file ---
         if ($request->hasFile('video')) {

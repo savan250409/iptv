@@ -23,6 +23,11 @@ class Upload
         return 'video/' . $folder . '/video';
     }
 
+    public static function subCategoryImageDir(?string $folder): string
+    {
+        return 'video/' . $folder . '/sub-category-images';
+    }
+
     public static function thumbDir(?string $folder): string
     {
         return 'video/' . $folder . '/video-thumabail';

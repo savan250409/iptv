@@ -36,10 +36,27 @@
       <div class="api-url">{{ $apiBase }}/getVideoByCategoryID</div>
 
       <p class="api-row"><span class="lbl">Parameters:</span><br>
+        <code class="param-name">category_id</code> <span class="param-req">(required)</span> e.g. <span class="param-ex">1</span><br>
+        <code class="param-name">sub_category_id</code> <span class="param-req">(optional)</span> e.g. <span class="param-ex">2</span></p>
+
+      <p class="api-row api-descr"><b>Description:</b><br>
+        Returns videos for the category; if <code class="code-inline">sub_category_id</code> is sent, only that sub-category's videos.</p>
+    </div>
+
+    {{-- sub-category --}}
+    <div class="api-doc-card">
+      <h3>Get Sub Category By Category ID</h3>
+
+      <p class="api-row"><span class="lbl">Method:</span> <span class="m-val">POST</span></p>
+
+      <p class="api-row"><span class="lbl">URL:</span></p>
+      <div class="api-url">{{ $apiBase }}/getsubcategorybycategoryid</div>
+
+      <p class="api-row"><span class="lbl">Parameters:</span><br>
         <code class="param-name">category_id</code> <span class="param-req">(required)</span> e.g. <span class="param-ex">1</span></p>
 
       <p class="api-row api-descr"><b>Description:</b><br>
-        Returns all videos for the specified category ID.</p>
+        Returns the active sub-categories of the given category.</p>
     </div>
 
     {{-- 3 --}}

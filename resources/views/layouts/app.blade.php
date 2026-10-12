@@ -27,6 +27,9 @@
       <a class="nav-link {{ request()->routeIs('categories.*') ? 'active' : '' }}" href="{{ route('categories.index') }}" aria-label="Categories" data-tip="Categories">
         @include('partials.icon', ['name' => 'grid']) <span class="label">Categories</span>
       </a>
+      <a class="nav-link {{ request()->routeIs('sub-categories.*') ? 'active' : '' }}" href="{{ route('sub-categories.index') }}" aria-label="Sub Categories" data-tip="Sub Categories">
+        @include('partials.icon', ['name' => 'folder']) <span class="label">Sub Categories</span>
+      </a>
       <a class="nav-link {{ request()->routeIs('videos.*') ? 'active' : '' }}" href="{{ route('videos.index') }}" aria-label="Videos" data-tip="Videos">
         @include('partials.icon', ['name' => 'film']) <span class="label">Videos</span>
       </a>

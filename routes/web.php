@@ -4,6 +4,7 @@ use App\Http\Controllers\ApiListController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\VideoController;
 use Illuminate\Support\Facades\Route;
 
@@ -27,6 +28,13 @@ Route::middleware('auth')->group(function () {
     Route::post('/categories', [CategoryController::class, 'store'])->name('categories.store');
     Route::put('/categories/{category}', [CategoryController::class, 'update'])->name('categories.update');
     Route::delete('/categories/{category}', [CategoryController::class, 'destroy'])->name('categories.destroy');
+
+    // Sub-categories
+    Route::get('/sub-categories', [SubCategoryController::class, 'index'])->name('sub-categories.index');
+    Route::get('/sub-categories/by-category', [SubCategoryController::class, 'byCategory'])->name('sub-categories.by-category');
+    Route::post('/sub-categories', [SubCategoryController::class, 'store'])->name('sub-categories.store');
+    Route::put('/sub-categories/{subCategory}', [SubCategoryController::class, 'update'])->name('sub-categories.update');
+    Route::delete('/sub-categories/{subCategory}', [SubCategoryController::class, 'destroy'])->name('sub-categories.destroy');
 
     // Videos
     Route::get('/videos', [VideoController::class, 'index'])->name('videos.index');
