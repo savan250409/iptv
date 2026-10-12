@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
 use App\Models\Category;
+use App\Models\SubCategory;
 use App\Models\Video;
 use App\Support\DataCache;
 use Illuminate\Http\Request;
@@ -26,12 +27,24 @@ class VideoApiController extends Controller
 
         // Cache the active-category lookup (cheap, but hit on every request).
         $category = DataCache::remember("api:cat:$categoryId:$host", 60, function () use ($categoryId) {
-            $c = Category::where('id', $categoryId)->where('is_active', true)->first(['id', 'name', 'image']);
+            $c = Category::where('id', $categoryId)->where('is_active', true)->first(['id', 'name', 'image', 'folder']);
             return $c ? ['id' => $c->id, 'name' => $c->name, 'image' => $c->image_url] : null;
         });
 
         if (!$category) {
             return response()->json(['success' => false, 'message' => 'Category not found.'], 404);
+        }
+
+        // Sub-category detail (shown once at the top, only when a sub_category_id is passed).
+        $subCategory = null;
+        if ($subCategoryId > 0) {
+            $subCategory = DataCache::remember("api:subcatone:$subCategoryId:$host", 60, function () use ($subCategoryId, $categoryId) {
+                $s = SubCategory::where('id', $subCategoryId)
+                    ->where('category_id', $categoryId)
+                    ->with('category:id,folder')
+                    ->first(['id', 'category_id', 'name', 'image']);
+                return $s ? ['id' => $s->id, 'name' => $s->name, 'image' => $s->image_url] : null;
+            });
         }
 
         $perPage = min(100, max(1, (int) $request->input('per_page', 20)));
@@ -58,7 +71,7 @@ class VideoApiController extends Controller
             ];
         });
 
-        return response()->json(['success' => true, 'category' => $category] + $payload);
+        return response()->json(['success' => true, 'category' => $category, 'sub-category' => $subCategory] + $payload);
     }
 
     /**
