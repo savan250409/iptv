@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Category;
+use App\Models\SubCategory;
 use App\Models\Video;
 use App\Support\DataCache;
 use App\Support\HandlesUploads;
@@ -37,17 +38,34 @@ class VideoController extends Controller
     {
         $allCategories = Category::orderBy('name')->get();
         $filterCat     = (int) $request->query('category_id', 0);
+        $filterSubCat  = (int) $request->query('sub_category_id', 0);
         $search        = trim((string) $request->query('q', ''));
         $perPage       = (int) $request->query('per_page', 10);
         $perPage       = in_array($perPage, [10, 25, 50, 100], true) ? $perPage : 10;
 
+        if ($filterCat > 0) {
+            $allSubCategories = SubCategory::where('category_id', $filterCat)->orderBy('name')->get();
+            if ($filterSubCat > 0 && !$allSubCategories->contains('id', $filterSubCat)) {
+                $filterSubCat = 0;
+            }
+        } else {
+            $allSubCategories = SubCategory::with('category:id,name')->orderBy('name')->get();
+        }
+
         $query = Video::query()
-            ->select(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail', 'created_at'])
-            ->with('category:id,name,folder');
+            ->select(['id', 'category_id', 'sub_category_id', 'title', 'episode_number', 'video_file', 'thumbnail', 'created_at'])
+            ->with(['category:id,name,folder', 'subCategory:id,name']);
 
         if ($filterCat) {
-            // Within a single category, show the saved index order.
-            $query->where('category_id', $filterCat)->orderBy('sort_order')->orderByDesc('id');
+            $query->where('category_id', $filterCat);
+        }
+        if ($filterSubCat) {
+            $query->where('sub_category_id', $filterSubCat);
+        }
+
+        if ($filterCat || $filterSubCat) {
+            // Within a single category or subcategory, show the saved index order.
+            $query->orderBy('sort_order')->orderByDesc('id');
         } else {
             $query->orderByDesc('id');
         }
@@ -56,7 +74,15 @@ class VideoController extends Controller
         }
         $videos = $query->paginate($perPage)->appends($request->query());
 
-        return view('videos.index', compact('allCategories', 'videos', 'filterCat', 'search', 'perPage'));
+        return view('videos.index', compact(
+            'allCategories',
+            'allSubCategories',
+            'videos',
+            'filterCat',
+            'filterSubCat',
+            'search',
+            'perPage'
+        ));
     }
 
     /** JSON list of a category's videos for the indexing popup (capped). */
@@ -217,8 +243,16 @@ class VideoController extends Controller
         $video->delete();
         DataCache::bump();
 
+        $params = [];
+        if ($request->filled('keep_filter')) {
+            $params['category_id'] = $request->input('category_id', $catId);
+        }
+        if ($request->filled('sub_category_id')) {
+            $params['sub_category_id'] = $request->input('sub_category_id');
+        }
+
         return redirect()
-            ->route('videos.index', $request->filled('keep_filter') ? ['category_id' => $catId] : [])
+            ->route('videos.index', $params)
             ->with('status', 'Video deleted.');
     }
 }

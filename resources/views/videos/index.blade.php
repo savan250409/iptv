@@ -12,7 +12,7 @@
     </div>
   </div>
 
-  {{-- Toolbar: show entries + category filter + search --}}
+  {{-- Toolbar: show entries + category filter + sub category filter + search --}}
   <form class="table-toolbar" method="get" id="videoFilterForm" action="{{ route('videos.index') }}">
     <div class="tt-left">
       <label class="tt-show">Show
@@ -22,10 +22,18 @@
           @endforeach
         </select> entries
       </label>
-      <select name="category_id" class="tt-status" onchange="this.form.submit()">
+      <select name="category_id" id="filterCategory" class="tt-status" onchange="onCategoryFilterChange(this)">
         <option value="0">All categories</option>
         @foreach ($allCategories as $c)
           <option value="{{ $c->id }}" {{ $filterCat === $c->id ? 'selected' : '' }}>{{ $c->name }}</option>
+        @endforeach
+      </select>
+      <select name="sub_category_id" id="filterSubCategory" class="tt-status" onchange="this.form.submit()">
+        <option value="0">{{ $filterCat > 0 && $allSubCategories->isEmpty() ? 'No sub categories' : 'All sub categories' }}</option>
+        @foreach ($allSubCategories as $s)
+          <option value="{{ $s->id }}" {{ $filterSubCat === $s->id ? 'selected' : '' }}>
+            {{ $s->name }}{{ !$filterCat && $s->category ? ' (' . $s->category->name . ')' : '' }}
+          </option>
         @endforeach
       </select>
     </div>
@@ -33,7 +41,12 @@
       @include('partials.icon', ['name' => 'search', 'cls' => 'search-ic'])
       <input type="text" name="q" value="{{ $search }}" placeholder="Search videos…">
       @if ($search !== '')
-        <a class="search-clear" href="{{ route('videos.index', ['per_page' => $perPage, 'category_id' => $filterCat]) }}" title="Clear">&times;</a>
+        @php
+          $clearParams = ['per_page' => $perPage];
+          if ($filterCat) $clearParams['category_id'] = $filterCat;
+          if ($filterSubCat) $clearParams['sub_category_id'] = $filterSubCat;
+        @endphp
+        <a class="search-clear" href="{{ route('videos.index', $clearParams) }}" title="Clear">&times;</a>
       @endif
     </div>
   </form>
@@ -41,18 +54,18 @@
   @if ($videos->isEmpty())
     <div class="empty">
       <div class="empty-ic">@include('partials.icon', ['name' => 'film'])</div>
-      <b>{{ $search !== '' ? 'No videos match your search' : 'No videos yet' }}</b>
-      @if ($search === '' && $allCategories->isEmpty())
+      <b>{{ ($search !== '' || $filterCat || $filterSubCat) ? 'No videos match your search' : 'No videos yet' }}</b>
+      @if ($search === '' && !$filterCat && !$filterSubCat && $allCategories->isEmpty())
         You need a category first. <a href="{{ route('categories.index') }}">Create a category →</a>
       @else
-        {{ $search !== '' ? 'Try a different keyword.' : 'Click “Add Video” to upload your first one.' }}
+        {{ ($search !== '' || $filterCat || $filterSubCat) ? 'Try a different keyword or filter.' : 'Click “Add Video” to upload your first one.' }}
       @endif
     </div>
   @else
   <div class="table-wrap">
     <table class="table">
       <thead>
-        <tr><th>Preview</th><th>Title</th><th>Episode</th><th>Category</th><th>Added</th><th class="ta-right">Actions</th></tr>
+        <tr><th>Preview</th><th>Title</th><th>Episode</th><th>Category</th><th>Sub Category</th><th class="ta-right">Actions</th></tr>
       </thead>
       <tbody>
         @foreach ($videos as $v)
@@ -67,7 +80,13 @@
           <td class="strong">{{ $v->title }}</td>
           <td class="muted">{{ $v->episode_number ?: '—' }}</td>
           <td><span class="pill"><span class="dot"></span>{{ optional($v->category)->name }}</span></td>
-          <td class="muted">{{ optional($v->created_at)->format('d M Y') }}</td>
+          <td>
+            @if ($v->subCategory)
+              <span class="pill"><span class="dot"></span>{{ $v->subCategory->name }}</span>
+            @else
+              <span class="muted">—</span>
+            @endif
+          </td>
           <td>
             <div class="row-actions">
               <a class="icon-btn" href="{{ $v->video_url }}" target="_blank" title="Open">@include('partials.icon', ['name' => 'open'])</a>
@@ -77,6 +96,12 @@
                     data-confirm-text="This video will be permanently deleted.">
                 @csrf @method('DELETE')
                 <input type="hidden" name="keep_filter" value="{{ $filterCat ? 1 : '' }}">
+                @if ($filterCat)
+                  <input type="hidden" name="category_id" value="{{ $filterCat }}">
+                @endif
+                @if ($filterSubCat)
+                  <input type="hidden" name="sub_category_id" value="{{ $filterSubCat }}">
+                @endif
                 <button class="icon-btn danger" title="Delete">@include('partials.icon', ['name' => 'trash'])</button>
               </form>
             </div>
@@ -118,6 +143,14 @@
 
 @push('scripts')
 <script>
+  function onCategoryFilterChange(select) {
+    const sub = document.getElementById('filterSubCategory');
+    if (sub) {
+      sub.value = '0';
+    }
+    select.form.submit();
+  }
+
   const VIDEO_REORDER_LIST = "{{ route('videos.reorder-list') }}";
   const VIDEO_REORDER      = "{{ route('videos.reorder') }}";
   const VCSRF = document.querySelector('meta[name=csrf-token]').content;
