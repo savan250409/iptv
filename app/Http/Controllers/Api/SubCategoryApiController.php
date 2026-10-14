@@ -33,10 +33,10 @@ class SubCategoryApiController extends Controller
                 ->orderBy('name')
                 ->get()
                 ->map(function ($s) {
-                    // Last 5 videos of this sub-category.
+                    // Videos of this sub-category (ascending order, limit 5).
                     $videos = Video::where('sub_category_id', $s->id)
                         ->orderBy('sort_order')
-                        ->orderByDesc('id')
+                        ->orderBy('id', 'asc')
                         ->limit(5)
                         ->get(['id', 'category_id', 'title', 'episode_number', 'video_file', 'thumbnail']);
                     $videos->each->setRelation('category', $s->category);
