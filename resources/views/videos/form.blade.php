@@ -4,7 +4,7 @@
 
 @section('content')
 <div class="form-page">
-  <a href="{{ route('videos.index') }}" class="back-link">@include('partials.icon', ['name' => 'arrow', 'cls' => 'icon-sm back-ic']) Back to Videos</a>
+  <a href="{{ $returnUrl ?? route('videos.index') }}" class="back-link">@include('partials.icon', ['name' => 'arrow', 'cls' => 'icon-sm back-ic']) Back to Videos</a>
 
   <div class="panel">
     <div class="panel-head">
@@ -23,6 +23,7 @@
             action="{{ $mode === 'edit' ? route('videos.update', $video) : route('videos.store') }}">
         @csrf
         @if ($mode === 'edit') @method('PUT') @endif
+        <input type="hidden" name="return_url" value="{{ $returnUrl ?? route('videos.index') }}">
 
         <div class="form-grid">
           <label class="field">
@@ -84,7 +85,7 @@
         </div>
 
         <div class="form-actions">
-          <a href="{{ route('videos.index') }}" class="btn">Cancel</a>
+          <a href="{{ $returnUrl ?? route('videos.index') }}" class="btn">Cancel</a>
           <button type="submit" class="btn btn-primary">
             @include('partials.icon', ['name' => $mode === 'edit' ? 'check' : 'play', 'cls' => 'icon-sm'])
             {{ $mode === 'edit' ? 'Update Video' : 'Upload Video' }}

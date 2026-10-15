@@ -86,6 +86,7 @@
                     data-confirm-title="Delete “{{ e($c->name) }}”?"
                     data-confirm-text="This category and all its videos will be permanently deleted.">
                 @csrf @method('DELETE')
+                <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
                 <button class="icon-btn danger" title="Delete">@include('partials.icon', ['name' => 'trash'])</button>
               </form>
             </div>
@@ -106,6 +107,7 @@
         action="{{ route('categories.store') }}">
     @csrf
     <input type="hidden" name="_method" id="categoryMethod" value="POST">
+    <input type="hidden" name="return_url" id="categoryReturnUrl" value="{{ request()->fullUrl() }}">
     <h3 id="categoryModalTitle">Add Category</h3>
 
     <label class="field">
@@ -186,9 +188,11 @@
     if (mode === 'update') {
       form.action = CATEGORY_UPDATE + '/' + data.id;
       document.getElementById('categoryMethod').value = 'PUT';
+      document.getElementById('categoryReturnUrl').value = window.location.href;
     } else {
       form.action = CATEGORY_STORE;
       document.getElementById('categoryMethod').value = 'POST';
+      document.getElementById('categoryReturnUrl').value = "{{ route('categories.index') }}";
     }
     openModal('categoryModal');
   }

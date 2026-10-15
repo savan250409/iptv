@@ -8,7 +8,7 @@
     <h2>@include('partials.icon', ['name' => 'film', 'cls' => 'icon-sm']) All Videos <span class="count-badge">{{ $videos->total() }}</span></h2>
     <div class="head-actions">
       <button class="btn btn-warning" onclick="openVideoIndexModal()">@include('partials.icon', ['name' => 'menu', 'cls' => 'icon-sm']) Indexing</button>
-      <a class="btn btn-primary" href="{{ route('videos.create') }}">@include('partials.icon', ['name' => 'plus', 'cls' => 'icon-sm']) Add Video</a>
+      <a class="btn btn-primary" href="{{ route('videos.create', ['return_url' => request()->fullUrl()]) }}">@include('partials.icon', ['name' => 'plus', 'cls' => 'icon-sm']) Add Video</a>
     </div>
   </div>
 
@@ -90,17 +90,25 @@
           <td>
             <div class="row-actions">
               <a class="icon-btn" href="{{ $v->video_url }}" target="_blank" title="Open">@include('partials.icon', ['name' => 'open'])</a>
-              <a class="icon-btn" href="{{ route('videos.edit', $v) }}" title="Edit">@include('partials.icon', ['name' => 'edit'])</a>
+              <a class="icon-btn" href="{{ route('videos.edit', ['video' => $v, 'return_url' => request()->fullUrl()]) }}" title="Edit">@include('partials.icon', ['name' => 'edit'])</a>
               <form method="post" action="{{ route('videos.destroy', $v) }}" class="inline js-confirm-delete"
                     data-confirm-title="Delete “{{ e($v->title) }}”?"
                     data-confirm-text="This video will be permanently deleted.">
                 @csrf @method('DELETE')
+                <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
+                <input type="hidden" name="page" value="{{ $videos->currentPage() }}">
                 <input type="hidden" name="keep_filter" value="{{ $filterCat ? 1 : '' }}">
                 @if ($filterCat)
                   <input type="hidden" name="category_id" value="{{ $filterCat }}">
                 @endif
                 @if ($filterSubCat)
                   <input type="hidden" name="sub_category_id" value="{{ $filterSubCat }}">
+                @endif
+                @if ($search !== '')
+                  <input type="hidden" name="q" value="{{ $search }}">
+                @endif
+                @if ($perPage)
+                  <input type="hidden" name="per_page" value="{{ $perPage }}">
                 @endif
                 <button class="icon-btn danger" title="Delete">@include('partials.icon', ['name' => 'trash'])</button>
               </form>

@@ -75,8 +75,15 @@ function ajaxSubmit(form) {
 // Handle the AJAX result. On success → navigate; on error → popup, keep the form & data.
 function handleAjaxResult(result) {
   if (result.ok) {
-    if (result.data && result.data.redirect) window.location = result.data.redirect;
-    else window.location.reload();
+    if (result.data && result.data.redirect) {
+      if (window.location.href === result.data.redirect) {
+        window.location.reload();
+      } else {
+        window.location.href = result.data.redirect;
+      }
+    } else {
+      window.location.reload();
+    }
     return true;
   }
   let msg = 'Something went wrong. Please try again.';

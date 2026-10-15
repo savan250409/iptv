@@ -13,14 +13,30 @@ class CategoryController extends Controller
 {
     use HandlesUploads;
 
-    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect back. */
-    private function saved(Request $request, string $message)
+    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect back or to return_url. */
+    private function saved(Request $request, string $message, ?string $defaultRedirect = null)
     {
+        $redirect = $this->safeRedirectUrl($request->input('return_url'), $defaultRedirect ?: url()->previous());
         if ($request->expectsJson()) {
             $request->session()->flash('status', $message);
-            return response()->json(['redirect' => url()->previous()]);
+            return response()->json(['redirect' => $redirect]);
         }
-        return back()->with('status', $message);
+        return redirect($redirect)->with('status', $message);
+    }
+
+    private function safeRedirectUrl(?string $url, string $fallback): string
+    {
+        if (!$url) {
+            return $fallback;
+        }
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            return $url;
+        }
+        $parsed = parse_url($url);
+        if (!empty($parsed['host']) && $parsed['host'] === request()->getHost()) {
+            return $url;
+        }
+        return $fallback;
     }
 
     /** Screen 1 — categories list (searchable, filterable, paginated). */
@@ -45,6 +61,17 @@ class CategoryController extends Controller
         }
 
         $categories = $query->paginate($perPage)->appends($request->query());
+
+        if ($categories->currentPage() > 1 && $categories->isEmpty()) {
+            $lastPage = max(1, $categories->lastPage());
+            $params = $request->query();
+            if ($lastPage > 1) {
+                $params['page'] = $lastPage;
+            } else {
+                unset($params['page']);
+            }
+            return redirect()->route('categories.index', $params);
+        }
 
         return view('categories.index', compact('categories', 'search', 'status', 'perPage'));
     }
@@ -103,7 +130,7 @@ class CategoryController extends Controller
         $category->save();
         DataCache::bump();
 
-        return $this->saved($request, 'Category added.');
+        return $this->saved($request, 'Category added.', route('categories.index'));
     }
 
     public function update(Request $request, Category $category)
@@ -133,7 +160,7 @@ class CategoryController extends Controller
         return $this->saved($request, 'Category updated.');
     }
 
-    public function destroy(Category $category)
+    public function destroy(Request $request, Category $category)
     {
         // Remove image + each video file & thumbnail, then the whole category folder.
         $this->removeFile($category->image, Upload::categoryImageDir($category->folder));
@@ -145,6 +172,7 @@ class CategoryController extends Controller
         $category->delete();
         DataCache::bump();
 
-        return back()->with('status', 'Category deleted (its videos were removed too).');
+        $redirect = $this->safeRedirectUrl($request->input('return_url'), url()->previous());
+        return redirect($redirect)->with('status', 'Category deleted (its videos were removed too).');
     }
 }

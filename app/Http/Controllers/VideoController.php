@@ -14,14 +14,30 @@ class VideoController extends Controller
 {
     use HandlesUploads;
 
-    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect to list. */
-    private function saved(Request $request, string $message)
+    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect to return_url or list. */
+    private function saved(Request $request, string $message, ?string $defaultRedirect = null)
     {
+        $redirect = $this->safeRedirectUrl($request->input('return_url'), $defaultRedirect ?: route('videos.index'));
         if ($request->expectsJson()) {
             $request->session()->flash('status', $message);
-            return response()->json(['redirect' => route('videos.index')]);
+            return response()->json(['redirect' => $redirect]);
         }
-        return redirect()->route('videos.index')->with('status', $message);
+        return redirect($redirect)->with('status', $message);
+    }
+
+    private function safeRedirectUrl(?string $url, string $fallback): string
+    {
+        if (!$url) {
+            return $fallback;
+        }
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            return $url;
+        }
+        $parsed = parse_url($url);
+        if (!empty($parsed['host']) && $parsed['host'] === request()->getHost()) {
+            return $url;
+        }
+        return $fallback;
     }
 
     private array $videoRules = [
@@ -74,6 +90,17 @@ class VideoController extends Controller
         }
         $videos = $query->paginate($perPage)->appends($request->query());
 
+        if ($videos->currentPage() > 1 && $videos->isEmpty()) {
+            $lastPage = max(1, $videos->lastPage());
+            $params = $request->query();
+            if ($lastPage > 1) {
+                $params['page'] = $lastPage;
+            } else {
+                unset($params['page']);
+            }
+            return redirect()->route('videos.index', $params);
+        }
+
         return view('videos.index', compact(
             'allCategories',
             'allSubCategories',
@@ -123,14 +150,16 @@ class VideoController extends Controller
     }
 
     /** Add-video screen. */
-    public function create()
+    public function create(Request $request)
     {
         $allCategories = Category::orderBy('name')->get();
+        $returnUrl = $this->safeRedirectUrl($request->input('return_url'), route('videos.index'));
         return view('videos.form', [
             'video'         => new Video(),
             'allCategories' => $allCategories,
             'subCategories' => collect(), // loaded via AJAX after a category is picked
             'mode'          => 'create',
+            'returnUrl'     => $returnUrl,
         ]);
     }
 
@@ -153,21 +182,24 @@ class VideoController extends Controller
         ]);
         DataCache::bump();
 
-        return $this->saved($request, 'Video added.');
+        return $this->saved($request, 'Video added.', route('videos.index'));
     }
 
     /** Edit-video screen. */
-    public function edit(Video $video)
+    public function edit(Request $request, Video $video)
     {
         $allCategories = Category::orderBy('name')->get();
         // Sub-categories of this video's current category (to pre-fill the dropdown).
         $subCategories = \App\Models\SubCategory::where('category_id', $video->category_id)
             ->orderBy('name')->get(['id', 'name']);
+        $returnUrl = $this->safeRedirectUrl($request->input('return_url'), route('videos.index'));
+
         return view('videos.form', [
             'video'         => $video,
             'allCategories' => $allCategories,
             'subCategories' => $subCategories,
             'mode'          => 'edit',
+            'returnUrl'     => $returnUrl,
         ]);
     }
 
@@ -243,12 +275,26 @@ class VideoController extends Controller
         $video->delete();
         DataCache::bump();
 
+        if ($request->filled('return_url')) {
+            $redirect = $this->safeRedirectUrl($request->input('return_url'), route('videos.index'));
+            return redirect($redirect)->with('status', 'Video deleted.');
+        }
+
         $params = [];
+        if ($request->filled('page')) {
+            $params['page'] = $request->input('page');
+        }
         if ($request->filled('keep_filter')) {
             $params['category_id'] = $request->input('category_id', $catId);
         }
         if ($request->filled('sub_category_id')) {
             $params['sub_category_id'] = $request->input('sub_category_id');
+        }
+        if ($request->filled('q')) {
+            $params['q'] = $request->input('q');
+        }
+        if ($request->filled('per_page')) {
+            $params['per_page'] = $request->input('per_page');
         }
 
         return redirect()

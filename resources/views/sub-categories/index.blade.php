@@ -81,6 +81,7 @@
                     data-confirm-title="Delete “{{ e($s->name) }}”?"
                     data-confirm-text="This sub-category will be removed (its videos stay, but lose this sub-category).">
                 @csrf @method('DELETE')
+                <input type="hidden" name="return_url" value="{{ request()->fullUrl() }}">
                 <button class="icon-btn danger" title="Delete">@include('partials.icon', ['name' => 'trash'])</button>
               </form>
             </div>
@@ -99,6 +100,7 @@
   <form class="modal-card" method="post" enctype="multipart/form-data" id="subForm" action="{{ route('sub-categories.store') }}">
     @csrf
     <input type="hidden" name="_method" id="subMethod" value="POST">
+    <input type="hidden" name="return_url" id="subReturnUrl" value="{{ request()->fullUrl() }}">
     <h3 id="subModalTitle">Add Sub Category</h3>
 
     <label class="field">
@@ -165,8 +167,15 @@
     if (mode === 'update' && data.image) { prevImg.src = data.image; prev.style.display = 'flex'; }
     else { prevImg.src = ''; prev.style.display = 'none'; }
 
-    if (mode === 'update') { form.action = SUB_UPDATE + '/' + data.id; document.getElementById('subMethod').value = 'PUT'; }
-    else { form.action = SUB_STORE; document.getElementById('subMethod').value = 'POST'; }
+    if (mode === 'update') {
+      form.action = SUB_UPDATE + '/' + data.id;
+      document.getElementById('subMethod').value = 'PUT';
+      document.getElementById('subReturnUrl').value = window.location.href;
+    } else {
+      form.action = SUB_STORE;
+      document.getElementById('subMethod').value = 'POST';
+      document.getElementById('subReturnUrl').value = "{{ route('sub-categories.index') }}";
+    }
     openModal('subModal');
   }
 

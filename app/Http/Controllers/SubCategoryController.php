@@ -13,14 +13,30 @@ class SubCategoryController extends Controller
 {
     use HandlesUploads;
 
-    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect back. */
-    private function saved(Request $request, string $message)
+    /** AJAX → JSON {redirect} (+ flashed toast); normal → redirect back or to return_url. */
+    private function saved(Request $request, string $message, ?string $defaultRedirect = null)
     {
+        $redirect = $this->safeRedirectUrl($request->input('return_url'), $defaultRedirect ?: url()->previous());
         if ($request->expectsJson()) {
             $request->session()->flash('status', $message);
-            return response()->json(['redirect' => url()->previous()]);
+            return response()->json(['redirect' => $redirect]);
         }
-        return back()->with('status', $message);
+        return redirect($redirect)->with('status', $message);
+    }
+
+    private function safeRedirectUrl(?string $url, string $fallback): string
+    {
+        if (!$url) {
+            return $fallback;
+        }
+        if (str_starts_with($url, '/') && !str_starts_with($url, '//')) {
+            return $url;
+        }
+        $parsed = parse_url($url);
+        if (!empty($parsed['host']) && $parsed['host'] === request()->getHost()) {
+            return $url;
+        }
+        return $fallback;
     }
 
     private array $rules = [
@@ -55,6 +71,18 @@ class SubCategoryController extends Controller
         }
 
         $subCategories = $query->paginate($perPage)->appends($request->query());
+
+        if ($subCategories->currentPage() > 1 && $subCategories->isEmpty()) {
+            $lastPage = max(1, $subCategories->lastPage());
+            $params = $request->query();
+            if ($lastPage > 1) {
+                $params['page'] = $lastPage;
+            } else {
+                unset($params['page']);
+            }
+            return redirect()->route('sub-categories.index', $params);
+        }
+
         $allCategories = Category::orderBy('name')->get(['id', 'name']);
 
         return view('sub-categories.index', compact('subCategories', 'allCategories', 'search', 'filterCat', 'perPage'));
@@ -77,7 +105,7 @@ class SubCategoryController extends Controller
         $sub->save();
         DataCache::bump();
 
-        return $this->saved($request, 'Sub-category added.');
+        return $this->saved($request, 'Sub-category added.', route('sub-categories.index'));
     }
 
     public function update(Request $request, SubCategory $subCategory)
@@ -100,13 +128,14 @@ class SubCategoryController extends Controller
         return $this->saved($request, 'Sub-category updated.');
     }
 
-    public function destroy(SubCategory $subCategory)
+    public function destroy(Request $request, SubCategory $subCategory)
     {
         $this->removeFile($subCategory->image, Upload::subCategoryImageDir(optional($subCategory->category)->folder));
         $subCategory->delete(); // videos' sub_category_id set to null via FK
         DataCache::bump();
 
-        return back()->with('status', 'Sub-category deleted.');
+        $redirect = $this->safeRedirectUrl($request->input('return_url'), url()->previous());
+        return redirect($redirect)->with('status', 'Sub-category deleted.');
     }
 
     /** JSON list of a category's sub-categories (for the video form dropdown). */
