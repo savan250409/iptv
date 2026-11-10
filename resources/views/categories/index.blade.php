@@ -78,7 +78,6 @@
                 data-id="{{ $c->id }}"
                 data-name="{{ $c->name }}"
                 data-active="{{ $c->is_active ? 1 : 0 }}"
-                data-image="{{ $c->image_url }}"
                 onclick="editCategory(this)">
                 @include('partials.icon', ['name' => 'edit'])
               </button>
@@ -120,7 +119,7 @@
     </label>
 
     <div class="img-preview" id="categoryPreview" style="display:none">
-      <img id="categoryPreviewImg" src="" alt="Preview">
+      <canvas id="categoryPreviewImg" class="thumb-preview" aria-label="Image preview"></canvas>
       <span class="muted">Image preview</span>
     </div>
 
@@ -176,12 +175,12 @@
     document.getElementById('categoryActive').checked = mode === 'update' ? !!data.active : true;
     fileInput.value = '';
 
-    // Show existing image on edit, otherwise hide the preview.
-    if (mode === 'update' && data.image) {
-      previewImg.src = data.image;
+    // Show existing image on edit (painted to canvas, no URL), otherwise hide.
+    if (mode === 'update' && data.token) {
+      MediaGuard.showToken(previewImg, data.token);
       preview.style.display = 'flex';
     } else {
-      previewImg.src = '';
+      MediaGuard.clear(previewImg);
       preview.style.display = 'none';
     }
 
@@ -203,20 +202,23 @@
     const preview = document.getElementById('categoryPreview');
     const previewImg = document.getElementById('categoryPreviewImg');
     if (file) {
-      previewImg.src = URL.createObjectURL(file);
+      MediaGuard.showFile(previewImg, file);
       preview.style.display = 'flex';
     } else {
-      previewImg.src = '';
+      MediaGuard.clear(previewImg);
       preview.style.display = 'none';
     }
   });
 
   function editCategory(btn) {
+    // Pull the token held on the row's painted canvas (a JS property, not a DOM
+    // attribute) so nothing readable is ever stored on the button or in the DOM.
+    const rowThumb = btn.closest('tr')?.querySelector('.thumb');
     openCategoryModal('update', {
       id: btn.dataset.id,
       name: btn.dataset.name,
       active: btn.dataset.active === '1',
-      image: btn.dataset.image || ''
+      token: (rowThumb && rowThumb.__msSrc) || ''
     });
   }
 

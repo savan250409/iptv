@@ -81,6 +81,7 @@
 </div>
 
 <script src="{{ asset('vendor/sweetalert2/sweetalert2.all.min.js') }}"></script>
+<script src="{{ asset('js/admin-media-protect.js') }}?v={{ filemtime(public_path('js/admin-media-protect.js')) }}"></script>
 <script src="{{ asset('js/app.js') }}?v={{ filemtime(public_path('js/app.js')) }}"></script>
 @if (session('status'))
 <script>

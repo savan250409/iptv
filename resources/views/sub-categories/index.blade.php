@@ -75,7 +75,7 @@
             <div class="row-actions">
               <button class="icon-btn" title="Edit"
                 data-id="{{ $s->id }}" data-category="{{ $s->category_id }}" data-name="{{ $s->name }}"
-                data-active="{{ $s->is_active ? 1 : 0 }}" data-image="{{ $s->image_url }}"
+                data-active="{{ $s->is_active ? 1 : 0 }}"
                 onclick="editSub(this)">@include('partials.icon', ['name' => 'edit'])</button>
               <form method="post" action="{{ route('sub-categories.destroy', $s) }}" class="inline js-confirm-delete"
                     data-confirm-title="Delete “{{ e($s->name) }}”?"
@@ -124,7 +124,7 @@
     </label>
 
     <div class="img-preview" id="subPreview" style="display:none">
-      <img id="subPreviewImg" src="" alt="Preview">
+      <canvas id="subPreviewImg" class="thumb-preview" aria-label="Image preview"></canvas>
       <span class="muted">Image preview</span>
     </div>
 
@@ -164,8 +164,8 @@
     document.getElementById('subActive').checked = mode === 'update' ? !!data.active : true;
     document.getElementById('subImage').value = '';
     const prev = document.getElementById('subPreview'), prevImg = document.getElementById('subPreviewImg');
-    if (mode === 'update' && data.image) { prevImg.src = data.image; prev.style.display = 'flex'; }
-    else { prevImg.src = ''; prev.style.display = 'none'; }
+    if (mode === 'update' && data.token) { MediaGuard.showToken(prevImg, data.token); prev.style.display = 'flex'; }
+    else { MediaGuard.clear(prevImg); prev.style.display = 'none'; }
 
     if (mode === 'update') {
       form.action = SUB_UPDATE + '/' + data.id;
@@ -180,16 +180,18 @@
   }
 
   function editSub(btn) {
+    // Pull the token held on the row's painted canvas (JS property, not a DOM attribute).
+    const rowThumb = btn.closest('tr')?.querySelector('.thumb');
     openSubModal('update', {
       id: btn.dataset.id, category: btn.dataset.category, name: btn.dataset.name,
-      active: btn.dataset.active === '1', image: btn.dataset.image || ''
+      active: btn.dataset.active === '1', token: (rowThumb && rowThumb.__msSrc) || ''
     });
   }
 
   document.getElementById('subImage').addEventListener('change', function () {
     const f = this.files && this.files[0], prev = document.getElementById('subPreview'), img = document.getElementById('subPreviewImg');
-    if (f) { img.src = URL.createObjectURL(f); prev.style.display = 'flex'; }
-    else { img.src = ''; prev.style.display = 'none'; }
+    if (f) { MediaGuard.showFile(img, f); prev.style.display = 'flex'; }
+    else { MediaGuard.clear(img); prev.style.display = 'none'; }
   });
 </script>
 @endpush

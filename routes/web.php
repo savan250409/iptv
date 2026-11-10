@@ -4,6 +4,7 @@ use App\Http\Controllers\ApiListController;
 use App\Http\Controllers\Auth\LoginController;
 use App\Http\Controllers\CategoryController;
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\SecureMediaController;
 use App\Http\Controllers\SubCategoryController;
 use App\Http\Controllers\VideoController;
 use Illuminate\Support\Facades\Route;
@@ -13,9 +14,12 @@ Route::get('/login', [LoginController::class, 'show'])->name('login');
 Route::post('/login', [LoginController::class, 'login']);
 Route::post('/logout', [LoginController::class, 'logout'])->name('logout');
 
-// ---- Admin panel (requires login) ----
-Route::middleware('auth')->group(function () {
+// ---- Admin panel (requires login + media protection) ----
+Route::middleware(['auth', 'protect.media'])->group(function () {
     Route::get('/', fn () => redirect()->route('dashboard'));
+
+    // Secure media stream (token-gated; auth already applied by the group)
+    Route::get('/secure-media', [SecureMediaController::class, 'stream'])->name('secure-media');
 
     // Dashboard (landing screen)
     Route::get('/dashboard', [DashboardController::class, 'index'])->name('dashboard');

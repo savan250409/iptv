@@ -80,7 +80,7 @@
           </div>
           <div class="field" id="thumbPreviewWrap" style="{{ $hasThumbNail ? '' : 'display:none' }}">
             <span>Generated thumbnail</span>
-            <img id="thumbPreviewImg" class="thumb-preview" src="{{ $hasThumbNail ? $video->thumbnail_url : '' }}" alt="Thumbnail">
+            <img id="thumbPreviewImg" class="thumb-preview" data-ms-live src="{{ $hasThumbNail ? $video->thumbnail_url : '' }}" alt="Thumbnail">
           </div>
         </div>
 
